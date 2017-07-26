@@ -12,7 +12,8 @@ module OmniHooks
       end
 
       event_type do
-        raw_info['event']
+        entity = raw_info.keys.first
+        "#{entity}_#{raw_info['event']}"
       end
 
       private

@@ -10,12 +10,18 @@ def make_env(path = '/hooks/click-funnels', props = {})
   }.merge(props)
 end
 
-def read_request(file_name)
-  File.open(File.expand_path("../../../fixtures/#{file_name}.json", __FILE__)).read
+def fixture(file_name)
+  data = File.open(File.expand_path("../../../fixtures/#{file_name}.json", __FILE__)).read
+  length = data.bytesize
+
+  { 
+    "CONTENT_TYPE" => 'application/json',
+    "CONTENT_LENGTH" => length.to_s,
+    'rack.input' => StringIO.new(data) 
+  }  
 end
 
 RSpec.describe OmniHooks::Strategies::ClickFunnels do
-  include Mail::Matchers
 
   let(:app) do
     lambda { |_env| [404, {}, ['Awesome']] }
@@ -26,7 +32,7 @@ RSpec.describe OmniHooks::Strategies::ClickFunnels do
     subject { OmniHooks::Strategies::ClickFunnels.new(nil) }
 
     it 'should have a name defined' do
-      expect(subject.options.name).to eq('sendgrid-parse')
+      expect(subject.options.name).to eq('click-funnels')
     end
   end
 
@@ -37,39 +43,28 @@ RSpec.describe OmniHooks::Strategies::ClickFunnels do
   end
 
   describe '#call' do
+    let(:subscriber) { Proc.new { |s| s } }
     let(:strategy) { OmniHooks::Strategies::ClickFunnels.new(app) }
+
+    before(:each) do
+      OmniHooks::Strategies::ClickFunnels.configure do |events|
+        events.subscribe('purchase_created', subscriber)
+      end
+    end
 
     context 'with a matched event' do
       it 'should pass the event to the subscriber' do
-        expect(subscriber).to receive(:call).with(an_email)
+        expect(subscriber).to receive(:call)
 
-        strategy.call(make_env('/hooks/click-funnels', multipart_fixture('matching_event')))
-      end
-
-      it 'should have received an e-mail' do
-        expect(strategy.call(make_env('/hooks/click-funnels', multipart_fixture('matching_event')))).to have_sent_email
-      end   
-
-      it 'should have matching properties' do
-        expect(strategy.call(make_env('/hooks/click-funnels', multipart_fixture('matching_event')))).to have_sent_email.to('test@webhooks.getdropstream.com').matching_body('')
-      end  
-      
-    end
-  
-    context 'with a matched event containg an attachment' do
-      it 'should have received an e-mail with attachment' do
-        expect(strategy.call(make_env('/hooks/click-funnels', multipart_fixture('matching_event_with_attachements')))).to have_sent_email.with_any_attachments
+        strategy.call(make_env('/hooks/click-funnels', fixture('purchase_created_event')))
       end
     end
-
     context 'with an unmatched event' do
       it 'should pass the event to the subscriber' do
         expect(subscriber).not_to receive(:call)
 
-        strategy.call(make_env('/hooks/click-funnels', multipart_fixture('unmatching_event')))
+        strategy.call(make_env('/hooks/click-funnels', fixture('contact_created_event')))
       end
-    end
-  
-  end
-end  
+    end    
+  end  
 end

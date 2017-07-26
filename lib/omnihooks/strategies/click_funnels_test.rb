@@ -18,7 +18,7 @@ module OmniHooks
       end
 
       event_type do
-        raw_info['event']
+        'test'
       end
 
       private
