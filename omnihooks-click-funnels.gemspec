@@ -26,7 +26,7 @@ Gem::Specification.new do |spec|
     f.match(%r{^(test|spec|features)/})
   end
   spec.require_paths = ["lib"]
-  spec.add_dependency 'omnihooks', '~> 0.0.2'
+  spec.add_dependency 'omnihooks', '~> 0.1.0'
   spec.add_dependency 'multi_json', '~> 1.12'
 
   spec.add_development_dependency "bundler", "~> 1.14"
